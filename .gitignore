@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# VSCode settings (如用 VSCode)
+.vscode/
+
+# Mac 系统文件
+.DS_Store
+
+# 数据文件（按需自定义*，如 data/、output/ 等文件夹）
+data/
+output/
+*.csv
+*.xlsx
+*.parquet
+
+# 日志文件
+*.log
+
+# 环境变量文件
+.env
+
+# 单元测试结果
+htmlcov/
+.coverage
+.tox/
+.nox/
+.pytest_cache/
+
+# 其它临时文件
+*.bak
+*.swp
+
+
+#CONFIDENTIAL
+credentials/
+secrets/
+*.json
