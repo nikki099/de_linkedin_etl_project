@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+- name: linkedin_int
+  database: LINKEDIN_DB
+  schema: LINKEDIN_RAW
+
+models:
+- name: int_linkedin_data
+  description: joined 3 tables - LINKEDIN_JOB_API_CLEANED_DATA, fix_city_name, fix_state_name

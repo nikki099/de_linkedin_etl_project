@@ -1,0 +1,43 @@
+{{ config(materialized='table') }}
+
+SELECT
+    SENIORITY,
+    CASE
+        WHEN LOWER(TRIM(seniority)) LIKE '%medium-high%'             THEN 'Intermediate'
+        WHEN LOWER(TRIM(seniority)) LIKE '%medium%'                  THEN 'Intermediate'
+        WHEN LOWER(TRIM(seniority)) LIKE '%intermediate%'            THEN 'Intermediate'
+        WHEN LOWER(TRIM(seniority)) LIKE '%it does not correspond%'  THEN 'Not Applicable'
+        WHEN LOWER(TRIM(seniority)) LIKE '%executive%'               THEN 'Manager/Executive'
+        WHEN LOWER(TRIM(seniority)) LIKE '%not valid%'               THEN 'Not Applicable'
+        WHEN LOWER(TRIM(seniority)) LIKE '%senior%'                  THEN 'Senior'
+        WHEN LOWER(TRIM(seniority)) LIKE '%minimum%'                 THEN 'Entry Level'
+        WHEN LOWER(TRIM(seniority)) LIKE '%management%'              THEN 'Manager/Executive'
+        WHEN LOWER(TRIM(seniority)) LIKE '%without experience%'      THEN 'No Experience'
+        WHEN LOWER(TRIM(seniority)) LIKE '%middle head manager%'     THEN 'Manager/Executive'
+        WHEN LOWER(TRIM(seniority)) LIKE '%assistant%'               THEN 'Entry Level'
+        WHEN LOWER(TRIM(seniority)) LIKE '%entry level%'             THEN 'Entry Level'
+        WHEN LOWER(TRIM(seniority)) LIKE '%senior employee%'         THEN 'Senior'
+        WHEN LOWER(TRIM(seniority)) LIKE '%mid-senior level%'        THEN 'Senior'
+        WHEN LOWER(TRIM(seniority)) LIKE '%middle level seniors%'    THEN 'Senior'
+        WHEN LOWER(TRIM(seniority)) LIKE '%middle%'                  THEN 'Intermediate'
+        WHEN LOWER(TRIM(seniority)) LIKE '%associate%'               THEN 'Entry Level'
+        WHEN LOWER(TRIM(seniority)) LIKE '%not applicable%'          THEN 'Not Applicable'
+        WHEN LOWER(TRIM(seniority)) LIKE '%manager%'                 THEN 'Manager/Executive'
+        WHEN LOWER(TRIM(seniority)) LIKE '%full-senior%'             THEN 'Senior'
+        WHEN LOWER(TRIM(seniority)) LIKE '%medium-upper level manager%' THEN 'Manager/Executive'
+        WHEN LOWER(TRIM(seniority)) LIKE '%association%'             THEN 'Not Applicable'
+        WHEN LOWER(TRIM(seniority)) LIKE '%base%'                    THEN 'Entry Level'
+        WHEN LOWER(TRIM(seniority)) LIKE '%some responsibility%'     THEN 'Intermediate'
+        WHEN LOWER(TRIM(seniority)) LIKE '%unprecedented%'           THEN 'Not Applicable'
+        WHEN LOWER(TRIM(seniority)) LIKE '%beginner%'                THEN 'Entry Level'
+        WHEN LOWER(TRIM(seniority)) LIKE '%trainee%'                 THEN 'No Experience'
+        WHEN LOWER(TRIM(seniority)) LIKE '%medium-level%'            THEN 'Intermediate'
+        WHEN LOWER(TRIM(seniority)) LIKE '%average seniority level%' THEN 'Intermediate'
+        WHEN LOWER(TRIM(seniority)) LIKE '%cadre%'                   THEN 'Intermediate'
+        WHEN LOWER(TRIM(seniority)) LIKE '%internship%'              THEN 'No Experience'
+        WHEN LOWER(TRIM(seniority)) LIKE '%junior%'                  THEN 'Entry Level'
+        WHEN LOWER(TRIM(seniority)) LIKE '%first job%'               THEN 'No Experience'
+        WHEN LOWER(TRIM(seniority)) LIKE '%director%'                THEN 'Manager/Executive'
+        ELSE 'Not Applicable'
+    END AS SENIORITY_STANDARDIZED
+FROM {{ source('linkedin_base', 'LINKEDIN_JOB_API_CLEANED_DATA') }}

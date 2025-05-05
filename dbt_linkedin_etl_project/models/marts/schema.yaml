@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+- name: linkedin_mart
+  database: LINKEDIN_DB
+  schema: LINKEDIN_RAW
+  tables:
+  - name: "INT_LINKEDIN_DATA"
+
+models:
+- name: mart_total_jobs_by_city
+- name: mart_total_jobs_by_org
+- name: mart_total_jobs_by_state
+- name: mart_total_jobs_by_type
+- name: mart_total_jobs_daily
+- name: mart_total_jobs_wow_trend

@@ -1,0 +1,11 @@
+
+target/
+dbt_packages/
+logs/
+
+# 避免任何 json 密钥文件被提交
+*.json
+
+# 如果你把密钥放在 credentials 文件夹
+credentials/
+linkedin_api_data_extraction/credentials/*.json
