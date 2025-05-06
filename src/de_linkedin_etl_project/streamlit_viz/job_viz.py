@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import snowflake.connector
+import plotly_express as px
 import os
 
 #Snowflake connection
@@ -82,20 +83,34 @@ def viz_job_data_summary(df_job_total):
 ##Get Daily jobs trend by title
 def query_daily_job_data(conn):
     query = """
-        SELECT JOB_CATEGORY as Title,
-        COUNT(DISTINCT ID) as Total_Jobs
-        FROM LINKEDIN_JOB_API_CLEANED_DATA
+        SELECT
+        DATE,
+        JOB_CATEGORY as Title,
+        SUM(TOTAL_JOBS) as Total_Jobs
+        FROM MART_TOTAL_JOBS_DAILY
         WHERE
         lower(title) LIKE '%data engineer%'
         or lower(title) LIKE '%data analyst%'
         or lower(title) LIKE '%data scientist%'
-        GROUP BY JOB_CATEGORY
-        ORDER BY Title ASC
+        GROUP BY Title, DATE
+        ORDER BY Title, DATE ASC
     """
     df_daily_jobs = pd.read_sql(query, conn)
     return df_daily_jobs
 
 
+
+def viz_daily_job_data(df_daily_jobs):
+    fig = px.line(df_daily_jobs, x='DATE', y='TOTAL_JOBS',
+                  color='TITLE',
+                  title='Data Job Daily Trend',
+                  color_discrete_map={
+                    "Data Analyst": "#1f77b4",
+                    "Data Scientist": "#aec7e8",
+                    "Data Engineer": "#d62728",                    }
+                  )
+    fig.update_layout(title_x=0.3) #align the title to the middle of page
+    st.plotly_chart(fig, use_container_width=True)
 
 
 
@@ -105,8 +120,8 @@ def main():
     title(df_dates)
     df_job_total = query_job_total(conn)
     viz_job_data_summary(df_job_total)
-    df_daily_jobs = query_daily_job_data
-
+    df_daily_jobs = query_daily_job_data(conn)
+    viz_daily_job_data(df_daily_jobs)
 
 if __name__ == "__main__":
     main()

@@ -57,6 +57,9 @@ joblib = ">=1.4.2,<2.0.0"
 gspread = ">=6.2.0,<7.0.0"
 google-auth = ">=2.39.0,<3.0.0"
 streamlit = "^1.45.0"
+plotly-express = "^0.4.1"
+nbformat = "^5.10.4"
+seaborn = "^0.13.2"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
