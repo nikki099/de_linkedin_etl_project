@@ -183,13 +183,25 @@ def query_salary_data(_conn):
     df_salary = pd.read_sql(query, _conn)
     return df_salary
 
-def viz_job_salary(df_salary):
+def query_state_salary_data(_conn):
+    query_state_da = """
+        SELECT
+        JOB_TITLE,STATES, AVG(AVERAGE_SALARY) AS AVG_SALARY
+        FROM MART_JOB_SALARY
+        GROUP BY JOB_TITLE, STATES
+        ORDER BY JOB_TITLE, AVG(AVERAGE_SALARY) DESC
+    """
+    df_state_salary = pd.read_sql(query_state_da, _conn)
+    return df_state_salary
+
+def viz_job_salary(df_salary, df_state_salary):
     st.markdown("""
     <div style='text-align:center; font-size:1.65rem; font-weight:600; margin-bottom:0.7em; margin-top:0.7em;'>
         Salary by Job Role
         <hr style="border:1px solid #bbb; width:70%; margin:auto;">
     </div>
     """, unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns(3)
     for idx, row in df_salary.iterrows():
         role = row['JOB_TITLE']
@@ -247,10 +259,14 @@ def viz_job_salary(df_salary):
             st.markdown(
                 f"<div style='text-align:center; font-weight:400; margin-bottom:0.5rem'>{role}</div>", unsafe_allow_html=True
             )
-            st.markdown(
-                f"<div style='text-align:center;'>salary by state</div>", unsafe_allow_html=True
-            )
             st.plotly_chart(fig, use_container_width=True)
+            st.markdown(
+                f"<div style='text-align:center;'>Expand to view salary info by state</div>", unsafe_allow_html=True
+            )
+            expander = st.expander("Show dataframe")
+            expander.dataframe(df_state_salary[df_state_salary['JOB_TITLE']==role][['STATES', 'AVG_SALARY']])
+
+
 
 @st.cache_data
 def query_top_skills_data(_conn):
@@ -343,7 +359,7 @@ def viz_job_by_region_org(dfs):
 def query_job_details(_conn):
     st.markdown("""
     <div style='text-align:center; font-size:1.65rem; font-weight:600; margin-bottom:0.7em; margin-top:0.7em;'>
-        Job Information
+        Full Job Information
         <hr style="border:1px solid #bbb; width:70%; margin:auto;">
     </div>
     """, unsafe_allow_html=True)
@@ -439,7 +455,8 @@ def main():
     df_daily_jobs = query_daily_job_data(conn)
     viz_daily_job_data(df_daily_jobs)
     df_salary = query_salary_data(conn)
-    viz_job_salary(df_salary)
+    df_state_salary=query_state_salary_data(conn)
+    viz_job_salary(df_salary, df_state_salary)
     df_top_skills = query_top_skills_data(conn)
     viz_top_job_skills(df_top_skills)
     dfs_region_org = query_job_by_region_org(conn)
