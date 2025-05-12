@@ -4,12 +4,20 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 ENV POETRY_VERSION=2.1.1
 ENV PYTHONUNBUFFERED=1
-ENV AIRFLOW_HOME=/app/AIRFLOW_HOME
+ENV AIRFLOW_HOME=/app/airflow
 
 
 WORKDIR $AIRFLOW_HOME
 
-RUN apt-get update && apt-get install curl -y
+#Install system dependencies
+RUN apt-get update && apt-get install -y \
+build-essential \
+libpq-dev \
+&& rm -rf /var/lib/apt/lists/*
+
+#Install poetry
+RUN pip3 install --upgrade --no-cache-dir pip \
+    && pip install poetry==${POETRY_VERSION}
 
 
 #COPY ALL REQUIRED FILES
@@ -18,23 +26,24 @@ COPY scripts ./scripts
 COPY src ./src
 COPY dbt_linkedin_etl_project ./dbt_linkedin_etl_project
 COPY credentials ./credentials
-#COPY AIRFLOW DAGs
 COPY dags ./dags
-RUN chmod +x scripts/entrypoint.sh
-RUN chmod +x scripts/init_connections.sh
-
-
-# #Install additional dependencies
-# RUN pip install apache-airflow==2.9.1 \
-#     apache-airflow-providers-snowflake \
-#     dbt-snowflake\
-#     snowflake-connector-python \
-#     snowflake-sqlalchemy \
-#     apache-airflow-providers-dbt-core \
 
 
 
+#RUN Connection and entrypoint scripts
+RUN chmod +x scripts/entrypoint.sh scripts/init_connections.sh
 
-RUN pip3 install --upgrade --no-cache-dir pip \
-    && pip3 install poetry \
-    && poetry install --only main
+
+#Use poetry to install main dependencies
+RUN poetry install --only main
+
+
+#Install additional dependencies (airflow, dbt, snowflake)
+RUN poetry run pip install \
+    apache-airflow==2.8.4 \
+    apache-airflow-providers-snowflake \
+    dbt-snowflake\
+    snowflake-connector-python \
+    snowflake-sqlalchemy \
+    apache-airflow-providers-http \
+    dbt-core
