@@ -13,7 +13,7 @@ import re
 from sqlalchemy import create_engine
 from sqlalchemy.sql import text
 import logging
-
+import asyncio
 
 
 # --- 配置 logging ---
@@ -174,18 +174,29 @@ def query_existing_job_data(conn):
     return df
 
 # --- Step 5：对新增数据进行翻译 ---
-def translate_columns(df, columns):
+async def translate_text(translator, text, target_language='en'):
+    """Translate a single text value asynchronously."""
+    try:
+        if not text or pd.isna(text):
+            return 'NA'
+        result = await translator.translate(str(text), dest=target_language)
+        return result.text
+    except Exception as e:
+        logging.warning("Error translating text: %s (Text: %s)", str(e), text)
+        return text
+
+async def translate_columns(df, columns, target_language='en'):
+    """
+    Asynchronously translate specified columns in a DataFrame to a target language ("en" by default).
+    """
     translator = Translator()
     for col in columns:
         unique_values = df[col].dropna().unique()
+        # Asynchronous batch translation for faster performance
+        tasks = {val: translate_text(translator, val, target_language) for val in unique_values}
         translation_map = {}
-        for val in unique_values:
-            try:
-                translated_text = translator.translate(str(val), dest='en').text
-                translation_map[val] = translated_text
-            except Exception as e:
-                logging.warning("Translation error: %s (Text: %s)", str(e), val)
-                translation_map[val] = val
+        for val, task in tasks.items():
+            translation_map[val] = await task
         df[col] = df[col].map(translation_map).fillna('NA')
     logging.info("Translated columns for: %s", columns)
     return df
@@ -245,8 +256,6 @@ def main():
     df_daily_all = extract_employment_type(df_daily_all)
     df_daily_all = extract_employee_size(df_daily_all)
 
-
-
     conn = connect_to_snowflake()
     if conn is None:
         logging.error("No connection to Snowflake; aborting script.")
@@ -262,11 +271,13 @@ def main():
         logging.info("No new jobs to load; script finished.")
         return
 
+    # ------------- CALL TRANSLATION ASYNC -----------
     translate_cols = ['CITY', 'STATE', 'ORGANIZATION', 'SENIORITY']
-    df_new_jobs = translate_columns(df_new_jobs, translate_cols)
+    df_new_jobs = asyncio.run(translate_columns(df_new_jobs, translate_cols))
+    # -------------------------------------------------
+
     print(df_new_jobs.shape)
     load_to_snowflake(df_new_jobs)
-    # logging.info("Script finished successfully.")
 
 if __name__ == "__main__":
     main()
