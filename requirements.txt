@@ -89,6 +89,7 @@ parsedatetime==2.6 ; python_version == "3.12"
 parso==0.8.4 ; python_version == "3.12"
 pathspec==0.12.1 ; python_version == "3.12"
 patsy==1.0.1 ; python_version == "3.12"
+pendulum==3.1.0 ; python_version == "3.12"
 pexpect==4.9.0 ; python_version == "3.12" and sys_platform != "win32" and sys_platform != "emscripten"
 pillow==11.2.1 ; python_version == "3.12"
 platformdirs==4.3.7 ; python_version == "3.12"
@@ -153,5 +154,3 @@ urllib3==2.4.0 ; python_version == "3.12"
 watchdog==6.0.0 ; python_version == "3.12" and platform_system != "Darwin"
 wcwidth==0.2.13 ; python_version == "3.12"
 zipp==3.21.0 ; python_version == "3.12"
-
-astro-run-dag # This package is needed for the astro run command. It will be removed before a deploy
