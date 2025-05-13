@@ -30,7 +30,7 @@ def job_dates(_conn):
 
 def title(df_dates):
     min_date = df_dates.iloc[0]['MIN_DATE']
-    max_date = df_dates.iloc[0]['MAX_DATE']
+    max_date = df_dates.iloc[0]['MAX_DATE']-timedelta(days=1)
     st.markdown(
         f"""
         <div style="text-align:center; margin-bottom:2rem;">
@@ -103,16 +103,26 @@ def query_wow_trend(_conn):
 def viz_wow_trend(df_wow_trend):
     col1, col2, col3 = st.columns(3)
     for idx, role in enumerate(df_wow_trend['JOB_CATEGORY']):
-        wow_pct = f"{df_wow_trend.loc[idx, 'WOW_DIFF_PCT'] * 100:.0f}%"
+        wow_diff = df_wow_trend.loc[idx, 'WOW_DIFF_PCT']
+        wow_pct = f"{wow_diff * 100:.0f}%"
         value = int(df_wow_trend.loc[idx, 'THIS_WEEK'])
+        if wow_diff > 0:
+            arrow="&#8593;" #upward arrow
+            color="#4BB543" #green color
+        elif wow_diff == 0:
+            arrow="&#8212;" # - dash
+            color="#FFD700" # yellow color
+        else:
+            arrow="&#8595;"#downward arrow
+            color="#d62728" #red color
         with [col1, col2, col3][idx]:
             st.markdown(
                 f"""
                 <div style='text-align:center; margin-bottom:0.5em'>
                   <div style="font-size:2rem;color:#222; font-weight:600;">{value}</div>
                   <div style="font-size:1rem;font-weight:300;">This Week - WoW Diff (%)</div>
-                  <div style="font-size:1.2rem; color:#d62728;">
-                    &#8595; {wow_pct}
+                  <div style="font-size:1.2rem; color:{color}">
+                    {arrow} {wow_pct}
                   </div>
                 </div>
                 """,
@@ -128,10 +138,11 @@ def query_daily_job_data(_conn):
         SUM(TOTAL_JOBS) as TOTAL_JOBS
         FROM MART_TOTAL_JOBS_DAILY
         WHERE
-        lower(title) LIKE '%data engineer%'
+        (lower(title) LIKE '%data engineer%'
         or lower(title) LIKE '%data analyst%'
-        or lower(title) LIKE '%data scientist%'
+        or lower(title) LIKE '%data scientist%')
         GROUP BY TITLE, DATE
+        having DATE < (SELECT MAX(DATE) FROM MART_TOTAL_JOBS_DAILY)
         ORDER BY TITLE, DATE ASC
     """
     df_daily_jobs = pd.read_sql(query, _conn)

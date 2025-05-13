@@ -32,7 +32,7 @@ WITH base AS (
 ),
 params AS (
     SELECT
-        CURRENT_DATE() AS report_date,  -- get this week date
+        DATEADD('day', -1, CURRENT_DATE()) AS report_date,  -- get this week date (full day)
         DAYOFWEEK(CURRENT_DATE()) as report_dow
 ),
 filtered AS (
