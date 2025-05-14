@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import timedelta
 import streamlit as st
 import snowflake.connector
 import plotly.express as px
@@ -11,12 +11,12 @@ st.set_page_config(layout="wide")
 # Snowflake connection
 def connect_to_snowflake():
     return snowflake.connector.connect(
-        user="NIKKILW2025",
+        user=os.getenv('SNOWFLAKE_USER', 'NIKKILW2025'),
         password=os.getenv('SNOWFLAKE_PASSWORD'),
-        account="gbszkwp-by30611",
-        warehouse="SNOWFLAKE_LEARNING_WH",
-        database="linkedin_db",
-        schema="linkedin_raw"
+        account=os.getenv('SNOWFLAKE_ACCOUNT', 'gbszkwp-by30611'),
+        warehouse=os.getenv('SNOWFLAKE_WAREHOUSE', 'SNOWFLAKE_LEARNING_WH'),
+        database=os.getenv('SNOWFLAKE_DATABASE', 'linkedin_db'),
+        schema=os.getenv('SNOWFLAKE_SCHEMA', 'linkedin_raw')
     )
 
 @st.cache_data
