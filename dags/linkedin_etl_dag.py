@@ -20,7 +20,7 @@ with DAG(
     timezone=local_tz,
 ) as dag:
 
-#step 1 run linkedin_api_raw_data_process.py to get api raw data and load into Snowflake
+    #step 1 run linkedin_api_raw_data_process.py to get api raw data and load into Snowflake
 
     extract_load = BashOperator(
         task_id="extract_load_api_data",
@@ -29,7 +29,7 @@ with DAG(
         ),
     )
 
-#step 2 run all DBT models to transform the raw data and load into new tables in snowflake
+    #step 2 run all DBT models to transform the raw data and load into new tables in snowflake
     run_dbt = BashOperator(
         task_id="run_dbt",
         bash_command=(
