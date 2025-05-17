@@ -1,0 +1,30 @@
+dbt_lewagon:
+  outputs:
+    dev:
+      dataset: dbt_nxie_day1
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+      keyfile: "/home/nxie/.gcp_keys/genial-beaker-450813-k9-4100aedc6b90.json"
+      location: EU
+      method: service-account
+      priority: interactive
+      project: "genial-beaker-450813-k9"
+      threads: 2
+      type: bigquery
+
+  target: dev
+
+dbt_linkedin_etl_project:
+  outputs:
+    dev:
+      type: snowflake
+      account: "gbszkwp-by30611"
+      user: "NIKKILW2025"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "SYSADMIN"
+      database: "LINKEDIN_DB"
+      warehouse: "SNOWFLAKE_LEARNING_WH"
+      schema: "LINKEDIN_RAW"
+      threads: 1
+      client_session_keep_alive: False
+  target: dev

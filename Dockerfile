@@ -1,4 +1,4 @@
-FROM python:3.12.8-slim
+FROM python:3.11.12-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -14,14 +14,17 @@ RUN apt-get update && apt-get install -y \
 
 #Install required modules
 COPY requirements.txt ./
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install psycopg2-binary
 
 #COPY ALL REQUIRED FILES
-COPY .dbt/ /app/.dbt/
+
+COPY .dbt/ .dbt/
 COPY scripts ./scripts
 COPY src ./src
 COPY dbt_linkedin_etl_project ./dbt_linkedin_etl_project
-COPY credentials ./credentials
+# COPY credentials ./credentials
 COPY dags ./dags
 
 

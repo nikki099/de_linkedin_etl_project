@@ -2,16 +2,14 @@ import pandas as pd
 from pandas import json_normalize
 import requests
 import json
-import snowflake.connector
 from dotenv import load_dotenv
 import os
-import http.client
 import urllib.parse
 from googletrans import Translator
-import string
 import re
-from sqlalchemy import create_engine
-from sqlalchemy.sql import text
+from sqlalchemy import create_engine, text
+from snowflake.connector import connect
+from snowflake.connector.pandas_tools import write_pandas
 import logging
 import asyncio
 
@@ -203,43 +201,43 @@ async def translate_columns(df, columns, target_language='en'):
 
 # Step 6：加载数据到 Snowflake ---
 # 增强 load_to_snowflake 函数（添加动态列对齐）
-def load_to_snowflake(df, table_name="linkedin_job_api_cleaned_data"):
-    engine = create_engine(
-        'snowflake://{user}:{password}@{account}/{database}/{schema}?warehouse={warehouse}'.format(
-            user=snowflake_user,
-            password=snowflake_password,
-            account=snowflake_account,
-            warehouse="SNOWFLAKE_LEARNING_WH",
-            database="linkedin_db",
-            schema="linkedin_raw"
-        )
-    )
+def load_to_snowflake(df, table_name="LINKEDIN_JOB_API_CLEANED_DATA"):
+    # Snowflake connection parameters
+    conn_params = {
+        'user': snowflake_user,
+        'password': snowflake_password,
+        'account': account,
+        'warehouse': 'SNOWFLAKE_LEARNING_WH',
+        'database': 'linkedin_db',
+        'schema': 'linkedin_raw'
+    }
 
-    # 动态获取目标表列
-    with engine.connect() as conn:
-        result = conn.execute(text(f"DESC TABLE {table_name}"))
-        table_columns = [row[0].upper() for row in result]  # 取第一个字段（列名）
+    # Create Snowflake connection
+    conn = connect(**conn_params)
 
-    # 列名大小写一致性处理
+    # Ensure column names are uppercase to match Snowflake
     df.columns = df.columns.str.upper()
 
-    # 自动补全缺失列
-    for col in table_columns:
-        if col not in df.columns:
-            df[col] = None  # 填充空值
-            logging.info("Added missing column: %s", col)
+    # Check if the table exists
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(f"DESC TABLE {table_name}")
+            logging.info("Table %s exists.", table_name)
+    except Exception as e:
+        logging.error("Table %s does not exist or cannot be accessed: %s", table_name, e)
+        conn.close()
+        return
 
-    # 按目标表列顺序排序
-    df = df[table_columns]
+    # Load DataFrame to Snowflake
+    try:
+        # Append the DataFrame to the existing table
+        write_pandas(conn, df, table_name, auto_create_table=False)
+        logging.info("Successfully loaded %d rows to Snowflake", len(df))
+    except Exception as e:
+        logging.error("An error occurred while loading data to Snowflake: %s", e)
+    finally:
+        conn.close()  # Ensure the connection is closed after loading
 
-    # 数据加载
-    df.to_sql(
-        name=table_name,
-        con=engine,
-        if_exists='append',
-        index=False
-    )
-    logging.info("Successfully loaded %d rows to Snowflake", len(df))
 
 # --- Main Flow ---
 def main():

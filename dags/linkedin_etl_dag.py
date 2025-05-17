@@ -1,9 +1,9 @@
-import os
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 import pendulum
 
 local_tz=pendulum.timezone("Australia/Brisbane")
+
 
 default_args = {
     "owner": "airflow",
@@ -14,10 +14,9 @@ default_args = {
 with DAG(
     dag_id="linkedin_etl_dag",
     default_args=default_args,
-    schedule_interval="0 17 * * *", #5pm Brisbane time daily
+    schedule="0 17 * * *", #5pm Brisbane time daily
     catchup=False,
     tags=["linkedin"],
-    timezone=local_tz,
 ) as dag:
 
     #step 1 run linkedin_api_raw_data_process.py to get api raw data and load into Snowflake

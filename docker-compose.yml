@@ -10,7 +10,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d db -U airflow || exit 1"]
       interval: 15s
-      retries: 5
+      retries: 3
     ports:
       - "5433:5432"
     restart: always
@@ -68,7 +68,6 @@ services:
       - ./logs:/app/airflow/logs
       #added dbt volumes
       - ./dbt_linkedin_etl_project:/app/airflow/dbt_linkedin_etl_project
-
     ports:
       - "8080:8080"
     healthcheck:
