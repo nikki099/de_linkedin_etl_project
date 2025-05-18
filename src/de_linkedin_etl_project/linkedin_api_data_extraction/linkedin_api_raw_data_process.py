@@ -12,7 +12,7 @@ from snowflake.connector import connect
 from snowflake.connector.pandas_tools import write_pandas
 import logging
 import asyncio
-
+import numpy as np
 
 # --- 配置 logging ---
 logging.basicConfig(
@@ -59,8 +59,6 @@ def extract_linkedin_job_data():
                 logging.warning("API error [%s]: %d", title_filter, response.status_code)
         except Exception as e:
             logging.error("Exception during API call [%s]: %s", title_filter, str(e))
-    df_daily_all.to_csv('linkedin_jobs_daily.csv', index=False)
-    df_daily_all= pd.read_csv('linkedin_jobs_daily.csv')
     logging.info("Finished extracting LinkedIn jobs. Total: %d", df_daily_all.shape[0])
     return df_daily_all
 
@@ -70,6 +68,33 @@ def get_clean_data_jobs(df_daily_all):
     df_clean = df_daily_all[df_daily_all['title'].str.contains(pattern, na=False)]
     logging.info("Cleaned job titles, remaining: %d", df_clean.shape[0])
     return df_clean
+
+# Selcted the needed columns
+def update_columns(df):
+    df.columns = df.columns.str.upper()
+    expected_columns = ['ID', 'DATE_POSTED', 'DATE_CREATED', 'TITLE', 'JOB_CATEGORY',
+       'ORGANIZATION', 'ORGANIZATION_URL', 'DATE_VALIDTHROUGH', 'LOCATIONS_RAW',
+       'LOCATION_TYPE', 'LOCATION_REQUIREMENTS_RAW', 'EMPLOYMENT_TYPE', 'URL',
+       'SOURCE_TYPE', 'SOURCE', 'SOURCE_DOMAIN', 'ORGANIZATION_LOGO',
+       'CITIES_DERIVED', 'REGIONS_DERIVED', 'COUNTRIES_DERIVED',
+       'LOCATIONS_DERIVED', 'TIMEZONES_DERIVED', 'LATS_DERIVED',
+       'LNGS_DERIVED', 'REMOTE_DERIVED', 'RECRUITER_NAME', 'RECRUITER_TITLE',
+       'RECRUITER_URL', 'LINKEDIN_ORG_EMPLOYEES', 'LINKEDIN_ORG_URL',
+       'LINKEDIN_ORG_SIZE', 'LINKEDIN_ORG_SLOGAN', 'LINKEDIN_ORG_INDUSTRY',
+       'LINKEDIN_ORG_FOLLOWERS', 'LINKEDIN_ORG_HEADQUARTERS',
+       'LINKEDIN_ORG_TYPE', 'LINKEDIN_ORG_FOUNDEDDATE',
+       'LINKEDIN_ORG_SPECIALTIES', 'LINKEDIN_ORG_LOCATIONS',
+       'LINKEDIN_ORG_DESCRIPTION', 'LINKEDIN_ORG_RECRUITMENT_AGENCY_DERIVED',
+       'SENIORITY', 'DIRECTAPPLY', 'LINKEDIN_ORG_SLUG']
+
+    # 记录缺失的预期列（但不删除任何现有列）
+    missing = set(expected_columns) - set(df.columns)
+    if missing:
+        logging.warning("Expected columns missing in source data: %s", missing)
+
+    logging.info("Final column count after update: %d", len(df.columns))
+    df = df[expected_columns]
+    return df
 
 # --- Step 3：字段处理和提取 ---
 
@@ -117,34 +142,31 @@ def extract_employee_size(df):
     )
     return df
 
-def update_columns(df):
-    df.columns = df.columns.str.upper()
-    expected_columns = [
-            'ID', 'DATE_POSTED', 'DATE_CREATED', 'TITLE', 'JOB_CATEGORY',
-            'ORGANIZATION', 'ORGANIZATION_URL', 'DATE_VALIDTHROUGH', 'LOCATIONS_RAW',
-            'LOCATION_TYPE', 'LOCATION_REQUIREMENTS_RAW', 'EMPLOYMENT_TYPE', 'URL',
-            'SOURCE_TYPE', 'SOURCE', 'SOURCE_DOMAIN', 'ORGANIZATION_LOGO',
-            'CITIES_DERIVED', 'REGIONS_DERIVED', 'COUNTRIES_DERIVED', 'LOCATIONS_DERIVED',
-            'TIMEZONES_DERIVED', 'LATS_DERIVED', 'LNGS_DERIVED', 'REMOTE_DERIVED',
-            'RECRUITER_NAME', 'RECRUITER_TITLE', 'RECRUITER_URL', 'LINKEDIN_ORG_EMPLOYEES',
-            'LINKEDIN_ORG_URL', 'LINKEDIN_ORG_SIZE', 'LINKEDIN_ORG_SLOGAN', 'LINKEDIN_ORG_INDUSTRY',
-            'LINKEDIN_ORG_FOLLOWERS', 'LINKEDIN_ORG_HEADQUARTERS', 'LINKEDIN_ORG_TYPE', 'LINKEDIN_ORG_FOUNDEDDATE',
-            'LINKEDIN_ORG_SPECIALTIES', 'LINKEDIN_ORG_LOCATIONS', 'LINKEDIN_ORG_DESCRIPTION',
-            'LINKEDIN_ORG_RECRUITMENT_AGENCY_DERIVED', 'SENIORITY', 'DIRECTAPPLY', 'LINKEDIN_ORG_SLUG'
-        ]
 
-    # 记录缺失的预期列（但不删除任何现有列）
-    missing = set(expected_columns) - set(df.columns)
-    if missing:
-        logging.warning("Expected columns missing in source data: %s", missing)
-
-    logging.info("Final column count after update: %d", len(df.columns))
+#Only keep the relevant columns
+def extract_relevant_columns(df):
+    relevant_columns = ['ID', 'TITLE', 'JOB_CATEGORY',
+       'JOB_DATE', 'CITY', 'STATE', 'EMPLOYMENT_TYPE' ,
+       'ORGANIZATION', 'ORGANIZATION_URL', 'URL',
+       'SOURCE_TYPE', 'SOURCE', 'SOURCE_DOMAIN',
+       'ORGANIZATION_LOGO', 'REMOTE_DERIVED', 'RECRUITER_NAME',
+       'RECRUITER_TITLE', 'RECRUITER_URL', 'LINKEDIN_ORG_URL',
+       'ORG_SIZE', 'LINKEDIN_ORG_INDUSTRY', 'LINKEDIN_ORG_HEADQUARTERS',
+       'LINKEDIN_ORG_TYPE', 'LINKEDIN_ORG_FOUNDEDDATE',
+       'LINKEDIN_ORG_SPECIALTIES', 'LINKEDIN_ORG_LOCATIONS',
+       'LINKEDIN_ORG_DESCRIPTION','LINKEDIN_ORG_RECRUITMENT_AGENCY_DERIVED',
+       'SENIORITY', 'DIRECTAPPLY', 'LINKEDIN_ORG_SLUG' ]
+    df = df[relevant_columns]
+    logging.info("final data frame with only relevent columns %d", len(df.columns))
     return df
+
+
+
 
 # --- Step 4：连接到 Snowflake ---
 def connect_to_snowflake():
     try:
-        conn = snowflake.connector.connect(
+        conn = connect(
             user=snowflake_user,
             password=snowflake_password,
             account=snowflake_account,
@@ -171,42 +193,77 @@ def query_existing_job_data(conn):
     logging.info("Queried existing job data from Snowflake, rows: %d", df.shape[0])
     return df
 
+
+#Check the Job ID from df and only keep those new jobs based on the Job IDs
+def keep_new_jobs(df_daily_all: pd.DataFrame, existing_df: pd.DataFrame) -> pd.DataFrame:
+    logging.info("Starting filtering new jobs based on job IDs.")
+
+    existing_job_ids = existing_df['ID'].unique().tolist()
+    logging.info("Number of existing job IDs: %d", len(existing_job_ids))
+
+    df_new_jobs = df_daily_all[~df_daily_all['ID'].isin(existing_job_ids)].reset_index(drop=True)
+    logging.info("Number of new jobs identified: %d", df_new_jobs.shape[0])
+
+    #convert empty strings to NaN
+    df_new_jobs.replace('', np.nan, inplace=True)
+    return df_new_jobs
+
+
+
+
+
 # --- Step 5：对新增数据进行翻译 ---
 async def translate_text(translator, text, target_language='en'):
-    """Translate a single text value asynchronously."""
     try:
         if not text or pd.isna(text):
             return 'NA'
         result = await translator.translate(str(text), dest=target_language)
         return result.text
     except Exception as e:
-        logging.warning("Error translating text: %s (Text: %s)", str(e), text)
+        logging.warning(f"Error translating text: {e} (Text: {text})")
         return text
 
-async def translate_columns(df, columns, target_language='en'):
-    """
-    Asynchronously translate specified columns in a DataFrame to a target language ("en" by default).
-    """
+async def translate_column(df, col, target_language='en'):
     translator = Translator()
+    unique_values = df[col].dropna().unique()
+    tasks = {val: translate_text(translator, val, target_language) for val in unique_values}
+    translation_map = {}
+    for val, task in tasks.items():
+        translation_map[val] = await task
+    df[col] = df[col].map(translation_map).fillna('NA')
+
+async def translate_columns(df, columns, target_language='en'):
     for col in columns:
-        unique_values = df[col].dropna().unique()
-        # Asynchronous batch translation for faster performance
-        tasks = {val: translate_text(translator, val, target_language) for val in unique_values}
-        translation_map = {}
-        for val, task in tasks.items():
-            translation_map[val] = await task
-        df[col] = df[col].map(translation_map).fillna('NA')
-    logging.info("Translated columns for: %s", columns)
+        await translate_column(df, col, target_language)
+    logging.info(f"Translated columns: {columns}")
     return df
+
+def sync_translate_columns(df, columns, target_language='en'):
+    """同步调用异步的列翻译函数，兼容普通脚本环境"""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # 如果已有事件循环在运行，使用 nest_asyncio
+            import nest_asyncio
+            nest_asyncio.apply()
+        return loop.run_until_complete(translate_columns(df, columns, target_language))
+    except RuntimeError as e:
+        logging.error(f"Event loop error: {e}, creating new event loop.")
+        # 创建新的事件循环，保障兼容性
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        return new_loop.run_until_complete(translate_columns(df, columns, target_language))
+
+
 
 # Step 6：加载数据到 Snowflake ---
 # 增强 load_to_snowflake 函数（添加动态列对齐）
-def load_to_snowflake(df, table_name="LINKEDIN_JOB_API_CLEANED_DATA"):
+def load_to_snowflake(df, table_name="LINKEDIN_JOB_API_CLEANED_DATA_COPY"):
     # Snowflake connection parameters
     conn_params = {
         'user': snowflake_user,
         'password': snowflake_password,
-        'account': account,
+        'account': snowflake_account,
         'warehouse': 'SNOWFLAKE_LEARNING_WH',
         'database': 'linkedin_db',
         'schema': 'linkedin_raw'
@@ -239,6 +296,7 @@ def load_to_snowflake(df, table_name="LINKEDIN_JOB_API_CLEANED_DATA"):
         conn.close()  # Ensure the connection is closed after loading
 
 
+
 # --- Main Flow ---
 def main():
     df_daily_all = extract_linkedin_job_data()
@@ -253,29 +311,31 @@ def main():
     df_daily_all['STATE'] = df_daily_all['LOCATIONS_RAW'].apply(extract_state)
     df_daily_all = extract_employment_type(df_daily_all)
     df_daily_all = extract_employee_size(df_daily_all)
+    df_daily_all = extract_relevant_columns(df_daily_all)
 
     conn = connect_to_snowflake()
     if conn is None:
         logging.error("No connection to Snowflake; aborting script.")
         return
     df_existing = query_existing_job_data(conn)
-    new_job_ids = set(df_daily_all['ID']) - set(df_existing['ID'])
-
-    df_new_jobs = df_daily_all[df_daily_all['ID'].isin(new_job_ids)].reset_index(drop=True)
+    df_new_jobs=keep_new_jobs(df_daily_all, df_existing)
     print(f'df_new_jobs shape is {df_new_jobs.shape}')
     logging.info("New jobs found: %d", df_new_jobs.shape[0])
+
 
     if df_new_jobs.empty:
         logging.info("No new jobs to load; script finished.")
         return
 
-    # ------------- CALL TRANSLATION ASYNC -----------
+    #------------- CALL TRANSLATION ASYNC -----------
     translate_cols = ['CITY', 'STATE', 'ORGANIZATION', 'SENIORITY']
-    df_new_jobs = asyncio.run(translate_columns(df_new_jobs, translate_cols))
-    # -------------------------------------------------
+    df_new_jobs = sync_translate_columns(df_new_jobs, translate_cols)
+    #-------------------------------------------------
 
-    print(df_new_jobs.shape)
     load_to_snowflake(df_new_jobs)
 
 if __name__ == "__main__":
     main()
+
+
+    # df_new_jobs=pd.read_csv('check_values.csv')
