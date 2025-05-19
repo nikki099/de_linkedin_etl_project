@@ -1,4 +1,8 @@
 import pandas as pd
+print("pandas version", pd.__version__)
+import sys
+print("Python executable:", sys.executable)
+
 from pandas import json_normalize
 import requests
 import json
@@ -13,6 +17,8 @@ from snowflake.connector.pandas_tools import write_pandas
 import logging
 import asyncio
 import numpy as np
+
+
 
 # --- 配置 logging ---
 logging.basicConfig(
@@ -211,7 +217,6 @@ def keep_new_jobs(df_daily_all: pd.DataFrame, existing_df: pd.DataFrame) -> pd.D
 
 
 
-
 # --- Step 5：对新增数据进行翻译 ---
 async def translate_text(translator, text, target_language='en'):
     try:
@@ -258,7 +263,7 @@ def sync_translate_columns(df, columns, target_language='en'):
 
 # Step 6：加载数据到 Snowflake ---
 # 增强 load_to_snowflake 函数（添加动态列对齐）
-def load_to_snowflake(df, table_name="LINKEDIN_JOB_API_CLEANED_DATA_COPY"):
+def load_to_snowflake(df, table_name="LINKEDIN_JOB_API_CLEANED_DATA"):
     # Snowflake connection parameters
     conn_params = {
         'user': snowflake_user,
@@ -336,6 +341,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-    # df_new_jobs=pd.read_csv('check_values.csv')
