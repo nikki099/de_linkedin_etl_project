@@ -1,18 +1,37 @@
-#!/usr/bin/env bash
-
+#!/bin/bash
 set -e
-set -x
 
-airflow db upgrade
+echo "POSTGRES_DB: $POSTGRES_DB"
+echo "POSTGRES_USER: $POSTGRES_USER"
+echo "POSTGRES_PASSWORD: $POSTGRES_PASSWORD"
 
-# airflow users create -r Admin -u admin -p admin -e admin@example.com -f admin -l airflow
+# Initialize airflow db
+if ! airflow db upgrade; then
+  echo "Database upgrade failed!"
+  exit 1
+fi
 
-# scripts/init_connections.sh
+if ! airflow db init; then
+  echo "Database initialization failed!"
+  exit 1
+fi
 
-# airflow webserver
+# Check if user exists
+if ! airflow users list | grep -q "admin"; then
+    # create admin user
+    airflow users create -r Admin -u admin -p admin -e admin@example.com -f admin -l airflow
+else
+    echo "Admin user already exists. Skipping user creation."
+fi
 
-airflow users create -r Admin -u admin -p admin -e admin@example.com -f admin -l airflow || true
-
+# Set Airflow Connections
 /app/airflow/scripts/init_connections.sh
 
-exec airflow webserver
+# Start the corresponding Airflow process based on the parameter
+if [ "$1" == "webserver" ]; then
+  airflow webserver
+elif [ "$1" == "scheduler" ]; then
+  airflow scheduler
+else
+  exec "$@"
+fi

@@ -6,20 +6,19 @@ ENV PYTHONUNBUFFERED=1
 ENV AIRFLOW_HOME=/app/airflow
 WORKDIR $AIRFLOW_HOME
 
-#Install system dependencies
+#Install system dependencies including postgresql-client
 RUN apt-get update && apt-get install -y \
   build-essential \
   libpq-dev \
+  postgresql-client \
   && rm -rf /var/lib/apt/lists/*
 
-#Install required modules
+#Install required python modules
 COPY requirements.txt ./
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    pip install psycopg2-binary
+    pip install -r requirements.txt
 
 #COPY ALL REQUIRED FILES
-
 COPY .dbt/ .dbt/
 COPY scripts ./scripts
 COPY src ./src
@@ -29,4 +28,4 @@ COPY dags ./dags
 
 
 #RUN Connection and entrypoint scripts
-RUN chmod +x scripts/entrypoint.sh scripts/init_connections.sh
+RUN chmod +x /app/airflow/scripts/entrypoint.sh /app/airflow/scripts/init_connections.sh

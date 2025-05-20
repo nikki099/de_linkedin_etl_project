@@ -1,8 +1,5 @@
 import pandas as pd
-print("pandas version", pd.__version__)
 import sys
-print("Python executable:", sys.executable)
-
 from pandas import json_normalize
 import requests
 import json

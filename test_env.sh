@@ -1,0 +1,6 @@
+# test_env.sh
+#!/bin/bash
+
+echo "POSTGRES_DB: ${POSTGRES_DB}"
+echo "POSTGRES_USER: ${POSTGRES_USER}"
+echo "POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}"

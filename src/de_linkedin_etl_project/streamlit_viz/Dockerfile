@@ -12,4 +12,4 @@ COPY . .
 
 
 # Run Streamlit app
-CMD ["streamlit", "run", "job_viz.py", "--server.enableCORS=false", "--server.port=8080"]
+CMD ["streamlit", "run", "job_viz.py", "--server.enableCORS=false", "--server.port=9090"]

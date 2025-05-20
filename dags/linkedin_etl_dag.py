@@ -24,16 +24,17 @@ with DAG(
     extract_load = BashOperator(
         task_id="extract_load_api_data",
         bash_command=(
-            "cd /app/airflow && python src/de_linkedin_etl_project/linkedin_api_data_extraction/linkedin_api_raw_data_process.py "
+            "python src/de_linkedin_etl_project/linkedin_api_data_extraction/linkedin_api_raw_data_process.py"
         ),
+        cwd="/app/airflow" #change to the working directory
     )
 
     #step 2 run all DBT models to transform the raw data and load into new tables in snowflake
     run_dbt = BashOperator(
         task_id="run_dbt",
-        bash_command=(
-            "cd /app/airflow/dbt_linkedin_etl_project && dbt run"
-        ),
+        bash_command="dbt run --profiles-dir /app/airflow/.dbt",
+        cwd="/app/airflow/dbt_linkedin_etl_project", #change to the DBT project directory
+        # env={"DBT_PROFILES_DIR": "/app/airflow/.dbt"} #specifically set the DBT profiles directory
     )
 
     extract_load >> run_dbt
