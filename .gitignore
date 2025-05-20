@@ -22,6 +22,7 @@ pip-delete-this-directory.txt
 
 # 数据文件（按需自定义*，如 data/、output/ 等文件夹）
 data/
+database/
 output/
 *.csv
 *.xlsx
